@@ -86,6 +86,13 @@ export interface ValueRegistry {
 
   /** Customer input data before the update transaction runs */
   customerDataBeforeUpdate: CustomerData;
+  /**
+   * Customer fields the public routes (`POST /api/customers` for anyone but an
+   * admin, `PATCH /api/customers/me`) remove from the request body. Context
+   * carries `routeId`. Add a field to protect an extension's own column;
+   * leaving out a core field does not unprotect it.
+   */
+  protectedCustomerFields: string[];
 
   // ── Customer: Address ─────────────────────────────────────────────────────
 
@@ -147,6 +154,14 @@ export interface ValueRegistry {
    * Keys are `"paymentStatus:shipmentStatus"` strings; values are order status strings.
    */
   psoMapping: Record<string, string>;
+  /**
+   * A new order's number. The init value is `String(10000 + order_id)`;
+   * `this` is an `OrderNumberContext` (oms/services/orderNumber.ts): the order
+   * about to be saved, its addresses, `source`, the cart and the order's
+   * transaction. A result that cannot be used falls back to the init value,
+   * with a warning.
+   */
+  orderNumber: string;
 
   // ── Email ─────────────────────────────────────────────────────────────────
 

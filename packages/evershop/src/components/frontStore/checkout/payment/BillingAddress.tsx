@@ -34,16 +34,10 @@ export function BillingAddress({
   const { form, checkoutData } = useCheckout();
   const { updateCheckoutData } = useCheckoutDispatch();
   const {
-    setValue,
     getValues,
     trigger,
     formState: { disabled }
   } = form;
-
-  const shippingAddress = useWatch({
-    control: form.control,
-    name: 'shippingAddress'
-  });
 
   const billingAddressField = useWatch({
     control: form.control,
@@ -52,11 +46,24 @@ export function BillingAddress({
 
   const [useSameAddress, setUseSameAddress] = useState(!noShippingRequired);
 
+  // The billing form fills itself: `CustomerAddressForm` maps a stored
+  // address (the GraphQL shape) to its field ids with `initialValuesFor`.
+  // Writing `billingAddress` into the form here put that shape in raw —
+  // `locality` and `country` as objects, `addressLine1`-style keys no field
+  // reads — so a saved address came back as City "[object Object]" and an
+  // empty Country, and saving it again failed with unknown address fields.
+  //
+  // "Same as shipping address" copies the shipping address the order sends:
+  // the one the shipment step puts in `checkoutData` when a shipping method
+  // is picked (read from the form with `getValues`). It used to copy a
+  // `useWatch` snapshot of the form instead, which a field's initial value
+  // does not update: after a reload the snapshot could hold the country
+  // alone (it depends on whether the address form's two queries are handled
+  // in one render), the order went out with `{ country }` as its billing
+  // address and the server refused it (theme-lab FINDINGS #83).
   useEffect(() => {
-    if (useSameAddress && shippingAddress) {
-      updateCheckoutData({ billingAddress: shippingAddress });
-    } else if (!useSameAddress) {
-      setValue('billingAddress', billingAddress);
+    if (useSameAddress && checkoutData.shippingAddress) {
+      updateCheckoutData({ billingAddress: checkoutData.shippingAddress });
     }
   }, [useSameAddress, checkoutData.shippingAddress]);
 
@@ -169,8 +176,11 @@ export function BillingAddress({
                       </label>
                     </ItemTitle>
 
+                    {/* ItemDescription clamps its text to two lines; a form
+                        inside it must not be clamped, or the address preview
+                        is cut short and the button below covers it (#1175). */}
                     {!useSameAddress && (
-                      <ItemDescription className="text-inherit mt-3 overflow-visible">
+                      <ItemDescription className="text-inherit mt-3 line-clamp-none">
                         <div className="text-inherit">
                           <CustomerAddressForm
                             surface="billing"
@@ -193,12 +203,14 @@ export function BillingAddress({
                 </Item>
               </>
             ) : (
-              <ItemDescription className="text-inherit mt-3 overflow-visible">
+              <ItemDescription className="text-inherit mt-3 line-clamp-none">
                 <div className="text-inherit">
+                  {/* No shipping: the billing address is the only address,
+                      so the one already saved on the cart is shown. */}
                   <CustomerAddressForm
                     surface="billing"
                     namePrefix="billingAddress"
-                    address={undefined} // Always start empty for different address
+                    address={billingAddress}
                   />
                   {noShippingRequired && (
                     <Button

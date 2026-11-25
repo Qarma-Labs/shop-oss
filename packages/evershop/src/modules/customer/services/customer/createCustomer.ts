@@ -192,11 +192,18 @@ async function createCustomer<T extends CustomerData>(data: T, context: Record<s
     // If status = 1, Emit event customer_registered
     // In case of status = 0, the custom extension will need to emit the event
     // (neither is emitted for a bulk import: suppressRegistrationEvent)
+    // The event is written with the transaction's connection, so it is saved
+    // with the customer or not at all: through the pool it was saved at once,
+    // and subscribers could run before the customer row was visible, or for
+    // a customer that a rollback then removed.
+    // Never the password hash: events are stored and read by every
+    // subscriber (and the welcome email's template data)
     if (options.suppressRegistrationEvent !== true) {
+      const { password: _password, ...payload } = customer;
       if (parseInt(customer.status.toString(), 10) === 1) {
-        await emit('customer_registered', customer);
+        await emit('customer_registered', payload, connection);
       } else {
-        await emit('account_created', customer);
+        await emit('account_created', payload, connection);
       }
     }
 

@@ -16,6 +16,14 @@ export {
 } from './updateShipmentStatusFromCarrier.js';
 export type { CarrierStatusMeta } from './updateShipmentStatusFromCarrier.js';
 export * from './updatePaymentStatus.js';
+export { markOrderPlaced } from './markOrderPlaced.js';
+export {
+  insertOrder,
+  defaultOrderNumber,
+  MAX_ORDER_NUMBER_LENGTH
+} from './orderNumber.js';
+export type { OrderNumberContext, InsertOrderOptions } from './orderNumber.js';
+export { cancelAbandonedOrder } from './cancelAbandonedOrder.js';
 export * from './updateShipmentStatus.js';
 export * from './orderLoader.js';
 export * from './addPaymentTransaction.js';
